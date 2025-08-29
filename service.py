@@ -10,9 +10,9 @@ import config
 logger = config.setup_logging()
 
 # 大模型API配置
-API_KEY = "1e6fd966e7394d3288716f3c9479ab36.PFlsdw63m06751cI"
-API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-MODEL_ID = "GLM-4.5-Air"
+API_KEY = config.settings.api_key
+API_URL = config.settings.api_url
+MODEL_ID = config.settings.model_id
 
 
 # 提取PDF文本内容
@@ -59,7 +59,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         progress_callback: 进度回调函数，接收进度百分比和消息
     """
     if progress_callback:
-        progress_callback(0, "开始处理文本")
+        progress_callback(15, "开始处理文本")
 
     if not text:
         logger.warning(f"{filename} 没有提取到文本内容")
@@ -67,7 +67,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         return pd.DataFrame(columns=columns)
 
     if progress_callback:
-        progress_callback(5, "构建提示词")
+        progress_callback(20, "构建提示词")
 
     prompt = build_text_prompt(text)
     logger.info(f"构建提示词完成，开始调用大模型API: {filename}")
@@ -101,7 +101,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         logger.info("-" * 50)
 
         if progress_callback:
-            progress_callback(10, "开始接收API响应")
+            progress_callback(40, "开始接收API响应")
 
         # 累积完整结果的变量
         full_response = ""
@@ -136,7 +136,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         logger.info(f"完成 {filename} 的内容提取")
 
         if progress_callback:
-            progress_callback(85, "API响应处理完成，正在解析结果")
+            progress_callback(90, "API响应处理完成，正在解析结果")
 
         # 解析完整结果并返回DataFrame
         result_df = parse_text_result(full_response)
