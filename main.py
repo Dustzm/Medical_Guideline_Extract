@@ -22,14 +22,7 @@ app = FastAPI(title="知识抽取API",
 # 存储任务状态的字典
 tasks: Dict[str, dict] = {}
 
-# 接口响应
-class ExtractionResponse(BaseModel):
-    filename: str
-    status: str
-    data: List[dict]
-    message: Optional[str] = None
-
-# 多线程任务状态
+# 多线程任务状态响应体
 class TaskStatus(BaseModel):
     task_id: str
     status: str  # pending, processing, completed, failed
@@ -65,7 +58,7 @@ async def extract_knowledge_from_pdf(file: UploadFile = File(...)):
     task_id = str(uuid.uuid4())
     # 获取当前时间作为开始时间
     start_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # 初始化任务状态
+    # 初始化任务状态，用于存储当前线程任务的相关字段，并给TaskStatus赋值，TaskStatus响应体仅在接口返回时使用，不要混淆
     tasks[task_id] = {
         "status": "pending",
         "progress": 0,
