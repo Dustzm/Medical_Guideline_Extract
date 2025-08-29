@@ -33,6 +33,11 @@ class TaskStatus(BaseModel):
     end_time: Optional[str] = None  # 任务结束时间
     duration: Optional[float] = None  # 任务处理时长(秒)
 
+# 任务列表响应
+class TaskListResponse(BaseModel):
+    tasks: List[TaskStatus]
+    total: int
+
 @app.get("/")
 async def root():
     return {"message": "知识抽取API服务正在运行",
@@ -102,8 +107,9 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
     """
     在后台线程中处理知识抽取任务
     """
-    start_time_str = tasks[task_id]["start_time_str"]
-    start_time = tasks[task_id]["start_time"]
+    task = tasks[task_id]
+    start_time_str = task["start_time_str"]
+    start_time = task["start_time"]
     def progress_callback(progress: int, message: str):
         """进度回调函数"""
         if task_id in tasks:
@@ -115,15 +121,13 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
     try:
         # 更新任务状态
         progress_callback(5, "开始处理PDF文件")
-
         # 提取PDF文本内容
         text = extract_text_from_pdf(file_path)
         progress_callback(10, "PDF文本提取完成，开始调用大模型API")
-
+        task["status"] = "processing"
         # 调用API抽取信息（支持进度更新）
         df = extract_info_streaming(text, filename, progress_callback)
         progress_callback(90, "大模型处理完成，正在整理结果")
-
         # 转换DataFrame为字典列表
         data = df.to_dict('records')
 
@@ -135,7 +139,7 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
         end_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # 完成任务
-        tasks[task_id].update({
+        task.update({
             "status": "completed",
             "progress": 100,
             "start_time_str":start_time_str,
@@ -158,7 +162,7 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
 
         duration = time.time() - start_time
         end_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        tasks[task_id].update({
+        task.update({
             "status": "failed",
             "progress": 100,
             "start_time_str": start_time_str,
@@ -197,6 +201,39 @@ async def get_task_status(task_id: str):
         start_time=task.get("start_time_str"),
         end_time=task.get("end_time_str"),
         duration=duration
+    )
+
+
+@app.get("/tasks", response_model=TaskListResponse)
+async def list_all_tasks():
+    """
+    获取所有任务列表
+
+    返回:
+    - 所有任务的状态列表
+    """
+    task_list = []
+
+    for task_id, task_data in tasks.items():
+        # 计算当前已用时长
+        duration = task_data.get("duration")
+        if duration is None and "start_time" in task_data:
+            duration = time.time() - task_data["start_time"]
+
+        task_status = TaskStatus(
+            task_id=task_id,
+            status=task_data["status"],
+            progress=task_data["progress"],
+            message=task_data["message"],
+            duration=duration,
+            start_time=task_data.get("start_time_str"),
+            end_time=task_data.get("end_time_str")
+        )
+        task_list.append(task_status)
+
+    return TaskListResponse(
+        tasks=task_list,
+        total=len(task_list)
     )
 
 

@@ -101,7 +101,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         logger.info("-" * 50)
 
         if progress_callback:
-            progress_callback(40, "开始接收API响应")
+            progress_callback(20, "开始接收API响应")
 
         # 累积完整结果的变量
         full_response = ""
