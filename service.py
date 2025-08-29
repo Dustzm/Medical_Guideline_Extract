@@ -4,10 +4,15 @@ import PyPDF2
 import pandas as pd
 import requests
 from cot_prompt import build_text_prompt
+from typing import Callable, Optional
+import config
 
-# 智谱大模型API配置
-QIANWEN_API_KEY = "1e6fd966e7394d3288716f3c9479ab36.PFlsdw63m06751cI"
-QIANWEN_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+logger = config.setup_logging()
+
+# 大模型API配置
+API_KEY = "1e6fd966e7394d3288716f3c9479ab36.PFlsdw63m06751cI"
+API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+MODEL_ID = "GLM-4.5-Air"
 
 
 # 提取PDF文本内容
@@ -44,22 +49,37 @@ def parse_text_result(text):
 
 
 # 调用API获取流式输出并实时打印
-def extract_info_streaming(text, filename):
+def extract_info_streaming(text, filename, progress_callback: Optional[Callable[[int, str], None]] = None):
+    """
+    调用API获取流式输出并实时打印
+
+    Args:
+        text: 输入文本
+        filename: 文件名
+        progress_callback: 进度回调函数，接收进度百分比和消息
+    """
+    if progress_callback:
+        progress_callback(0, "开始处理文本")
+
     if not text:
-        print(f"{filename} 没有提取到文本内容")
+        logger.warning(f"{filename} 没有提取到文本内容")
         columns = ["entity", "property", "value", "entityTag", "valueTag", "level"]
         return pd.DataFrame(columns=columns)
 
+    if progress_callback:
+        progress_callback(5, "构建提示词")
+
     prompt = build_text_prompt(text)
+    logger.info(f"构建提示词完成，开始调用大模型API: {filename}")
 
     try:
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {QIANWEN_API_KEY}"
+            "Authorization": f"Bearer {API_KEY}"
         }
 
         data = {
-            "model": "glm-4.5",
+            "model": MODEL_ID,
             "messages": [
                 {"role": "system", "content": "你是专业的医学信息提取工具，严格按照用户要求以纯文本格式输出提取结果"},
                 {"role": "user", "content": prompt}
@@ -70,18 +90,22 @@ def extract_info_streaming(text, filename):
 
         # 发送流式请求
         response = requests.post(
-            QIANWEN_API_URL,
+            API_URL,
             headers=headers,
             json=data,
             stream=True  # 保持连接打开，接收流式数据
         )
         response.raise_for_status()
 
-        print(f"\n{filename} 实时提取结果：")
-        print("-" * 50)
+        logger.info(f"开始流式处理 {filename} 的提取结果")
+        logger.info("-" * 50)
+
+        if progress_callback:
+            progress_callback(10, "开始接收API响应")
 
         # 累积完整结果的变量
         full_response = ""
+        line_count = 0
 
         # 迭代处理流式响应
         for line in response.iter_lines():
@@ -89,6 +113,7 @@ def extract_info_streaming(text, filename):
                 # 解析SSE格式（去除"data:"前缀）
                 line = line.decode('utf-8').lstrip('data: ')
                 if line == '[DONE]':  # 流式结束标记
+                    logger.info("流式响应处理完成")
                     break
                 try:
                     chunk = json.loads(line)
@@ -97,20 +122,36 @@ def extract_info_streaming(text, filename):
                     if content:
                         print(content, end='', flush=True)  # 实时打印
                         full_response += content  # 累积内容
+                        line_count += 1
+                        # 每处理10行更新一次进度（模拟）
+                        if line_count % 10 == 0 and progress_callback:
+                            progress = min(10 + (line_count // 10), 80)  # 10-80%之间
+                            progress_callback(progress, f"已处理 {line_count} 行响应数据")
                 except json.JSONDecodeError:
                     continue
                 except KeyError:
                     continue
 
-        print("\n" + "-" * 50 + "\n")
+        logger.info("-" * 50)
+        logger.info(f"完成 {filename} 的内容提取")
+
+        if progress_callback:
+            progress_callback(85, "API响应处理完成，正在解析结果")
 
         # 解析完整结果并返回DataFrame
-        return parse_text_result(full_response)
+        result_df = parse_text_result(full_response)
+        logger.info(f"解析完成，共提取 {len(result_df)} 条记录")
+
+        if progress_callback:
+            progress_callback(95, f"解析完成，共提取 {len(result_df)} 条记录")
+
+        return result_df
 
     except Exception as e:
-        print(f"API调用出错: {e}")
+        logger.error(f"API调用出错: {e}", exc_info=True)
         columns = ["entity", "property", "value", "entityTag", "valueTag", "level"]
         return pd.DataFrame(columns=columns)
+
 
 
 # 主函数
