@@ -41,7 +41,7 @@ LOGGING_CONFIG = {
             'level': 'DEBUG',
             'formatter': 'detailed',
             'class': 'logging.FileHandler',
-            'filename': 'app.log',
+            'filename': '../app.log',
             'mode': 'a', # 追加模式
             'encoding': 'utf-8', # 指定编码
         },

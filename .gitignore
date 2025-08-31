@@ -139,5 +139,8 @@ Thumbs.db
 .env.local
 .env.*.local
 
+#database
+*.db
+
 tmp/
 temp/
