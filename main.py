@@ -1,18 +1,18 @@
-import asyncio
-import uuid
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
-import pandas as pd
-import io
-import json
-from pydantic import BaseModel
-from typing import List, Optional
-import tempfile
 import os
-from typing import Dict
+import secrets
+import tempfile
 import threading
 import time
+import uuid
 from datetime import datetime
+from typing import Dict
+from typing import List, Optional
+
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from sercurity import api_keys, get_api_key, APIKeyResponse, APIKeyRequest, APIKeyListResponse, APIKeyInfo
 from service import extract_text_from_pdf, extract_info_streaming
 
 app = FastAPI(title="知识抽取API",
@@ -38,11 +38,98 @@ class TaskListResponse(BaseModel):
     tasks: List[TaskStatus]
     total: int
 
+@app.middleware("http")
+async def api_key_check(request: Request, call_next):
+    """
+    api令牌校验切片
+    """
+    # 白名单，路径为/public则免校验
+    if(request.url.path.startswith("/public")):
+        return await call_next(request)
+    # 从请求头获取API密钥
+    api_key = request.headers.get("X-API-Key")
+
+    # 验证API密钥
+    if not api_key or api_key not in api_keys:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "无效的API密钥"}
+        )
+    return await call_next(request)
 @app.get("/")
 async def root():
     return {"message": "知识抽取API服务正在运行",
             "version": "1.0.0",
             "description": "上传PDF文件以抽取其中的医学知识"}
+
+@app.post("/public/create-api-key", response_model=APIKeyResponse)
+async def create_api_key(key_request: APIKeyRequest):
+    """
+    申请新的API密钥
+
+    参数:
+    - key_request: API密钥申请信息
+
+    返回:
+    - 新生成的API密钥信息
+    """
+    # 生成新的API密钥
+    api_key = secrets.token_urlsafe(32)
+
+    # 存储API密钥信息
+    api_keys[api_key] = {
+        "name": key_request.name,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    return APIKeyResponse(
+        api_key=api_key,
+        name=key_request.name,
+        created_at=api_keys[api_key]["created_at"]
+    )
+
+
+@app.get("/api-keys", response_model=APIKeyListResponse)
+async def list_api_keys(api_key: str = Depends(get_api_key)):
+    """
+    获取所有API密钥列表（需要管理员权限）
+
+    参数:
+    - api_key: API密钥（通过依赖注入验证）
+
+    返回:
+    - API密钥列表
+    """
+    key_list = []
+    for key, info in api_keys.items():
+        key_list.append(APIKeyInfo(
+            name=info["name"],
+            created_at=info["created_at"]
+        ))
+
+    return APIKeyListResponse(
+        keys=key_list,
+        total=len(key_list)
+    )
+
+
+@app.delete("/api-keys/{api_key}")
+async def delete_api_key(api_key_to_delete: str, api_key: str = Depends(get_api_key)):
+    """
+    删除指定的API密钥（需要管理员权限）
+
+    参数:
+    - api_key_to_delete: 要删除的API密钥
+    - api_key: 请求者的API密钥（通过依赖注入验证）
+
+    返回:
+    - 删除结果
+    """
+    if api_key_to_delete in api_keys:
+        del api_keys[api_key_to_delete]
+        return {"message": "API密钥已删除"}
+    else:
+        raise HTTPException(status_code=404, detail="API密钥不存在")
 
 
 @app.post("/extract", response_model=TaskStatus)
