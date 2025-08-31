@@ -15,6 +15,7 @@ pip install -r requirements.txt
 ```
 ## 启动服务
 ```bash
+cd backend
 python main.py
 ```
 服务将运行在 `http://localhost:8999`
