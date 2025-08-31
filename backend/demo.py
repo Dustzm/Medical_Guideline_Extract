@@ -1,4 +1,3 @@
-import logging
 import config
 
 logger = config.setup_logging()
