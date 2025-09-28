@@ -1,4 +1,6 @@
-# 构造提示词（使用您提供的思维链提示词）
+"""
+旧版完整思维链，此版本弃用
+"""
 def build_text_prompt(text):
     your_chain_of_thought_prompt = """
 <思考开始>

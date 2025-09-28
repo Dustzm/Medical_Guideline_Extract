@@ -5,6 +5,7 @@ import threading
 import time
 import uuid
 from datetime import datetime
+from fileinput import filename
 from typing import Dict
 from typing import List, Optional
 
@@ -12,7 +13,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from service import extract_text_from_pdf, extract_info_streaming
+from extract_service import extract_text_from_pdf, extract
 from database import init_db
 from config import setup_logging
 from sercurity import (
@@ -46,6 +47,7 @@ tasks: Dict[str, dict] = {}
 # 多线程任务状态响应体
 class TaskStatus(BaseModel):
     task_id: str
+    tag: str # 通常为文件名称，用于标记当前任务
     status: str  # pending, processing, completed, failed
     progress: int  # 0-100
     message: str
@@ -77,7 +79,7 @@ async def api_key_check(request: Request, call_next):
             content={"detail": "无效的API密钥"}
         )
     return await call_next(request)
-@app.get("/")
+@app.get("/public/check")
 async def root():
     return {"message": "知识抽取API服务正在运行",
             "version": "1.0.0",
@@ -166,6 +168,7 @@ async def extract_knowledge_from_pdf(file: UploadFile = File(...)):
     # 初始化任务状态，用于存储当前线程任务的相关字段，并给TaskStatus赋值，TaskStatus响应体仅在接口返回时使用，不要混淆
     tasks[task_id] = {
         "status": "pending",
+        "filename":f"{file.filename}",
         "progress": 0,
         "message": "任务已创建",
         "result": None,
@@ -189,6 +192,7 @@ async def extract_knowledge_from_pdf(file: UploadFile = File(...)):
 
         return TaskStatus(
             task_id=task_id,
+            tag=file.filename,
             status="pending",
             progress=0,
             message="任务已提交，正在处理中",
@@ -226,7 +230,7 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
         progress_callback(10, "PDF文本提取完成，开始调用大模型API")
         task["status"] = "processing"
         # 调用API抽取信息（支持进度更新）
-        df = extract_info_streaming(text, filename, progress_callback)
+        df = extract(text, filename, progress_callback)
         progress_callback(90, "大模型处理完成，正在整理结果")
         # 转换DataFrame为字典列表
         data = df.to_dict('records')
@@ -257,9 +261,7 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
         # 清理临时文件
         if os.path.exists(file_path):
             os.unlink(file_path)
-
         # 计算处理时长
-
         duration = time.time() - start_time
         end_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         task.update({
@@ -294,6 +296,7 @@ async def get_task_status(task_id: str):
 
     return TaskStatus(
         task_id=task_id,
+        tag=task["filename"],
         status=task["status"],
         progress=task["progress"],
         message=task["message"],
@@ -322,6 +325,7 @@ async def list_all_tasks():
 
         task_status = TaskStatus(
             task_id=task_id,
+            tag=task_data["filename"],
             status=task_data["status"],
             progress=task_data["progress"],
             message=task_data["message"],

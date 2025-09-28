@@ -63,12 +63,14 @@ def extract(text, filename, progress_callback: Optional[Callable[[int, str], Non
         progress_callback: 进度回调函数，接收进度百分比和消息
     """
     if progress_callback:
-        progress_callback(1, "开始处理文本")
+        progress_callback(1, "抽取开始")
 
     # 无文本处理
     if not text:
         logger.warning(f"{filename} 没有提取到文本内容")
         columns = ["entity", "property", "value", "entityTag", "valueTag", "level"]
+        if progress_callback:
+            progress_callback(100, f"没有提取到文本，抽取结束")
         return pd.DataFrame(columns=columns)
     start_time = time.time()
     # 1.文档布局分析
@@ -84,10 +86,18 @@ def extract(text, filename, progress_callback: Optional[Callable[[int, str], Non
     # 4.核心内容处理
     core_extract_info = ""
     logger.info(f"{filename}核心内容抽取准备，共{core_dict['total']}个问题，准备抽取")
-    for i, atom_item in enumerate(core_dict["atom"]):
+    # 记录步长和初始进度
+    step = 70/core_dict['total']
+    progress = 31
+    if progress_callback:
+        progress_callback(31, f"开始核心内容抽取，共{core_dict['total']}个问题")
+    for i, atom_item in enumerate(core_dict['atom']):
         # 循环处理每个临床问题原子
         temp_info = unstruct.core_extract(atom_item, layout_dict['reference'], layout_dict['evidence'], filename, progress_callback)
         core_extract_info += temp_info
+        if progress_callback:
+            progress += step
+            progress_callback(progress, f"已完成第{i+1}个问题抽取")
     logger.info(f"=={filename}核心内容抽取完成==")
     #5.汇总结果
     full_response = edge_extract_info + '\n' + core_extract_info
@@ -95,11 +105,13 @@ def extract(text, filename, progress_callback: Optional[Callable[[int, str], Non
     # 解析完整结果并返回DataFrame
     result_df = parse_text_result(full_response)
     extract_time = time.time() - start_time
+    if progress_callback:
+        progress_callback(100, f"已完成抽取，耗时：{extract_time}")
     logger.info(f"=={filename}解析完成，耗时：{extract_time}s==")
 
     # 进度汇报
     if progress_callback:
-        progress_callback(100, f"{filename}解析完成")
+        progress_callback(100, f"解析完成")
 
     return result_df
 

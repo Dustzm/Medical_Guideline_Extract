@@ -28,7 +28,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         progress_callback: 进度回调函数，接收进度百分比和消息
     """
     if progress_callback:
-        progress_callback(15, "边缘信息文本抽取开始")
+        progress_callback(25, f"边缘信息文本抽取开始")
 
     prompt = build_others_prompt(text)
     logger.info(f"边缘信息抽取准备: {filename}")
@@ -92,6 +92,8 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
 
         logger.info("-" * 50)
         response_body = remove_think_tag(full_response)
+        if progress_callback:
+            progress_callback(30,f"边缘信息抽取完成")
         logger.info(f"边缘信息完成抽取： {filename} ")
         return response_body
 

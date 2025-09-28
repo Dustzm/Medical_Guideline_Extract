@@ -24,7 +24,7 @@ def extract_info_streaming(text, filename,progress_callback: Optional[Callable[[
         progress_callback: 进度回调函数，接收进度百分比和消息
     """
     if progress_callback:
-        progress_callback(15, "核心内容分析开始")
+        progress_callback(15, f"核心内容分析开始")
 
     prompt = build_core_segmentation_prompt(text)
     logger.info(f"核心内容分析准备，开始调用大模型: {filename}")
@@ -83,7 +83,7 @@ def extract_info_streaming(text, filename,progress_callback: Optional[Callable[[
         logger.info(f"核心内容完成，完成 {filename} 的内容提取")
 
         if progress_callback:
-            progress_callback(25, f"核心内容完成")
+            progress_callback(20, f"核心内容分析完成")
 
         res = parse_json_result(response_body)
         return res

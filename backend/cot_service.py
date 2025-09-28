@@ -1,3 +1,6 @@
+"""
+旧版思维链方式抽取，当前版本弃用
+"""
 import os
 import json
 import PyPDF2

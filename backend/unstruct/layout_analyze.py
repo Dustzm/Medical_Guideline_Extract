@@ -25,7 +25,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         progress_callback: 进度回调函数，接收进度百分比和消息
     """
     if progress_callback:
-        progress_callback(15, "文档布局分析开始")
+        progress_callback(5, f"文档布局分析开始")
 
     if not text:
         logger.warning(f"{filename} 没有提取到文本内容")
@@ -89,7 +89,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
         logger.info(f"文档布局分析完成，完成 {filename} 的内容提取")
 
         if progress_callback:
-            progress_callback(25, f"文档布局分析完成")
+            progress_callback(10, f"文档布局分析完成")
 
         res = parse_json_result(response_body)
         return res

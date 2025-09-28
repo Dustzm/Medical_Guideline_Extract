@@ -29,9 +29,6 @@ def extract_info_streaming(core_text, reference, ev_definition, filename, progre
         filename: 文件名
         progress_callback: 进度回调函数，接收进度百分比和消息
     """
-    if progress_callback:
-        progress_callback(15, "核心内容文本抽取开始")
-
     prompt = build_core_prompt(core_text, reference, ev_definition)
     logger.info(f"核心内容抽取准备: {filename}")
 
@@ -65,8 +62,6 @@ def extract_info_streaming(core_text, reference, ev_definition, filename, progre
 
         # 累积完整结果的变量
         full_response = ""
-        line_count = 0
-
         # 迭代处理流式响应
         for line in response.iter_lines():
             if line:
@@ -82,21 +77,14 @@ def extract_info_streaming(core_text, reference, ev_definition, filename, progre
                     if content:
                         print(content, end='', flush=True)  # 实时打印
                         full_response += content  # 累积内容
-                        line_count += 1
-                        # 每处理10行更新一次进度（模拟）
-                        if line_count % 10 == 0 and progress_callback:
-                            progress = min(10 + (line_count // 10), 80)  # 10-80%之间
-                            progress_callback(progress, f"已处理 {line_count} 行响应数据")
                 except json.JSONDecodeError:
                     continue
                 except KeyError:
                     continue
-
         logger.info("-" * 50)
         response_body = remove_think_tag(full_response)
         logger.info(f"核心内容完成抽取： {filename} ")
         return response_body + "\n"
-
     except Exception as e:
         logger.error(f"核心内容抽取抛出异常: {e}", exc_info=True)
         raise
