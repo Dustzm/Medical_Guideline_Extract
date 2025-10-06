@@ -1,5 +1,6 @@
 import logging
 import logging.config
+from pathlib import Path
 
 from pydantic.v1 import BaseSettings
 
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
 
     # 配置 .env 文件路径 (Pydantic v1)
     class Config:
-        env_file = "../.env"
+        env_file = Path(__file__).parent.parent / ".env"
 
 # 创建配置实例，它会自动从 .env 文件和环境变量加载值
 settings = Settings()

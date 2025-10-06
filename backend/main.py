@@ -1,4 +1,8 @@
 import os
+import sys
+from pathlib import Path
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import secrets
 import tempfile
 import threading
@@ -16,6 +20,7 @@ from pydantic import BaseModel
 from extract_service import extract_text_from_pdf, extract
 from database import init_db
 from config import setup_logging
+from dotenv import load_dotenv
 from sercurity import (
     api_key_cache as api_keys,
     APIKeyManager,
@@ -28,6 +33,7 @@ from sercurity import (
     list_all_api_keys,
     remove_api_key
 )
+# 设置日志
 logger = setup_logging()
 # 初始化数据库
 init_db.init_database()
@@ -67,7 +73,7 @@ async def api_key_check(request: Request, call_next):
     api令牌校验切片
     """
     # 白名单，路径为/public则免校验
-    if request.url.path.startswith("/public"):
+    if request.url.path.startswith("/knowledgeExtract/public"):
         return await call_next(request)
     # 从请求头获取API密钥
     api_key = request.headers.get("X-API-Key")
@@ -79,13 +85,13 @@ async def api_key_check(request: Request, call_next):
             content={"detail": "无效的API密钥"}
         )
     return await call_next(request)
-@app.get("/public/check")
+@app.get("/knowledgeExtract/public/check")
 async def root():
     return {"message": "知识抽取API服务正在运行",
             "version": "1.0.0",
             "description": "上传PDF文件以抽取其中的医学知识"}
 
-@app.post("/public/create-api-key", response_model=APIKeyResponse)
+@app.post("/knowledgeExtract/public/create-api-key", response_model=APIKeyResponse)
 async def create_api_key(key_request: APIKeyRequest):
     """
     申请新的API密钥
@@ -105,7 +111,7 @@ async def create_api_key(key_request: APIKeyRequest):
     )
 
 
-@app.get("/api-keys", response_model=APIKeyListResponse)
+@app.get("/knowledgeExtract/api-keys", response_model=APIKeyListResponse)
 async def list_api_keys():
     """
     获取所有API密钥列表（需要管理员权限）
@@ -124,7 +130,7 @@ async def list_api_keys():
     )
 
 
-@app.delete("/api-keys/{api_key}")
+@app.delete("/knowledgeExtract/api-keys/{api_key}")
 async def delete_api_key(api_key_to_delete: str):
     """
     删除指定的API密钥（需要管理员权限）
@@ -147,7 +153,7 @@ async def delete_api_key(api_key_to_delete: str):
         )
 
 
-@app.post("/extract", response_model=TaskStatus)
+@app.post("/knowledgeExtract/extract", response_model=TaskStatus)
 async def extract_knowledge_from_pdf(file: UploadFile = File(...)):
     """
     从上传的PDF文件中抽取知识（异步处理）
@@ -274,7 +280,7 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
         })
 
 
-@app.get("/task/{task_id}", response_model=TaskStatus)
+@app.get("/knowledgeExtract/task/{task_id}", response_model=TaskStatus)
 async def get_task_status(task_id: str):
     """
     获取任务状态
@@ -307,7 +313,7 @@ async def get_task_status(task_id: str):
     )
 
 
-@app.get("/tasks", response_model=TaskListResponse)
+@app.get("/knowledgeExtract/tasks", response_model=TaskListResponse)
 async def list_all_tasks():
     """
     获取所有任务列表
@@ -341,7 +347,7 @@ async def list_all_tasks():
     )
 
 
-@app.delete("/task/{task_id}")
+@app.delete("/knowledgeExtract/task/{task_id}")
 async def delete_task(task_id: str):
     """
     删除任务（清理任务记录）
