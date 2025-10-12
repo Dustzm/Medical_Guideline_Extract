@@ -1,26 +1,22 @@
 import os
 import sys
-from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import secrets
 import tempfile
 import threading
 import time
 import uuid
 from datetime import datetime
-from fileinput import filename
 from typing import Dict
 from typing import List, Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from extract_service import extract_text_from_pdf, extract
 from database import init_db
 from config import setup_logging
-from dotenv import load_dotenv
 from sercurity import (
     api_key_cache as api_keys,
     APIKeyManager,
@@ -46,6 +42,8 @@ logger.info("-----令牌缓存加载完毕-----")
 app = FastAPI(title="知识抽取API",
               description="将医学指南文档中的知识通过大模型抽取为结构化数据",
               version="1.0.0")
+
+router = APIRouter(prefix="/medicalGuideLine/knowledgeExtract")
 
 # 存储任务状态的字典
 tasks: Dict[str, dict] = {}
@@ -73,7 +71,7 @@ async def api_key_check(request: Request, call_next):
     api令牌校验切片
     """
     # 白名单，路径为/public则免校验
-    if request.url.path.startswith("/knowledgeExtract/public"):
+    if request.url.path.startswith("/medicalGuildLine/knowledgeExtract/public"):
         return await call_next(request)
     # 从请求头获取API密钥
     api_key = request.headers.get("X-API-Key")
@@ -85,13 +83,13 @@ async def api_key_check(request: Request, call_next):
             content={"detail": "无效的API密钥"}
         )
     return await call_next(request)
-@app.get("/knowledgeExtract/public/check")
+@router.get("/public/check")
 async def root():
     return {"message": "知识抽取API服务正在运行",
             "version": "1.0.0",
             "description": "上传PDF文件以抽取其中的医学知识"}
 
-@app.post("/knowledgeExtract/public/create-api-key", response_model=APIKeyResponse)
+@router.post("/public/create-api-key", response_model=APIKeyResponse)
 async def create_api_key(key_request: APIKeyRequest):
     """
     申请新的API密钥
@@ -111,7 +109,7 @@ async def create_api_key(key_request: APIKeyRequest):
     )
 
 
-@app.get("/knowledgeExtract/api-keys", response_model=APIKeyListResponse)
+@router.get("/api-keys", response_model=APIKeyListResponse)
 async def list_api_keys():
     """
     获取所有API密钥列表（需要管理员权限）
@@ -130,7 +128,7 @@ async def list_api_keys():
     )
 
 
-@app.delete("/knowledgeExtract/api-keys/{api_key}")
+@router.delete("/api-keys/{api_key}")
 async def delete_api_key(api_key_to_delete: str):
     """
     删除指定的API密钥（需要管理员权限）
@@ -153,7 +151,7 @@ async def delete_api_key(api_key_to_delete: str):
         )
 
 
-@app.post("/knowledgeExtract/extract", response_model=TaskStatus)
+@router.post("/extract", response_model=TaskStatus)
 async def extract_knowledge_from_pdf(file: UploadFile = File(...)):
     """
     从上传的PDF文件中抽取知识（异步处理）
@@ -280,7 +278,7 @@ def process_extraction_task(task_id: str, file_path: str, filename: str):
         })
 
 
-@app.get("/knowledgeExtract/task/{task_id}", response_model=TaskStatus)
+@router.get("/task/{task_id}", response_model=TaskStatus)
 async def get_task_status(task_id: str):
     """
     获取任务状态
@@ -313,7 +311,7 @@ async def get_task_status(task_id: str):
     )
 
 
-@app.get("/knowledgeExtract/tasks", response_model=TaskListResponse)
+@router.get("/tasks", response_model=TaskListResponse)
 async def list_all_tasks():
     """
     获取所有任务列表
@@ -347,7 +345,7 @@ async def list_all_tasks():
     )
 
 
-@app.delete("/knowledgeExtract/task/{task_id}")
+@router.delete("/task/{task_id}")
 async def delete_task(task_id: str):
     """
     删除任务（清理任务记录）
@@ -364,6 +362,14 @@ async def delete_task(task_id: str):
     else:
         raise HTTPException(status_code=404, detail="任务不存在")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8999)
+app.include_router(router)
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8999)
+#     mcp.run(
+#         sse=True,
+#         host="0.0.0.0",
+#         port=8999,
+#         sse_path="/medicalGuideLine/knowledgeExtract/sse"
+#     )

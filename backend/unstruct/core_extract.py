@@ -6,6 +6,7 @@ import json
 import PyPDF2
 import pandas as pd
 import requests
+from backend.llm import chatStream
 from backend.prompt import build_core_prompt
 from typing import Callable, Optional
 import backend.config as config
@@ -33,28 +34,7 @@ def extract_info_streaming(core_text, reference, ev_definition, filename, progre
     logger.info(f"核心内容抽取准备: {filename}")
 
     try:
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_KEY}"
-        }
-
-        data = {
-            "model": MODEL_ID,
-            "messages": [
-                {"role": "system", "content": "你是专业的医学信息提取工具，严格按照用户要求以纯文本格式输出提取结果"},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.2,
-            "stream": True  # 启用流式响应
-        }
-
-        # 发送流式请求
-        response = requests.post(
-            API_URL,
-            headers=headers,
-            json=data,
-            stream=True  # 保持连接打开，接收流式数据
-        )
+        response = chatStream(prompt)
         response.raise_for_status()
 
         logger.info(f"核心内容抽取： {filename}")
