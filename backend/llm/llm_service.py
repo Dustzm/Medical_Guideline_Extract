@@ -9,7 +9,7 @@ API_KEY = config.settings.api_key
 API_URL = config.settings.api_url
 MODEL_ID = config.settings.model_id
 
-def chatStream(prompt:str):
+def chat(prompt:str, stream:bool|None = True):
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {API_KEY}"
@@ -21,13 +21,13 @@ def chatStream(prompt:str):
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.2,
-        "stream": True  # 启用流式响应
+        "stream": stream  # 启用流式响应
     }
     # 发送流式请求
     response = requests.post(
         API_URL,
         headers=headers,
         json=data,
-        stream=True  # 保持连接打开，接收流式数据
+        stream=stream  # 保持连接打开，接收流式数据
     )
     return response

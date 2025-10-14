@@ -6,7 +6,7 @@ import json
 import PyPDF2
 import pandas as pd
 import requests
-from backend.llm import chatStream
+from backend.llm import chat
 from backend.prompt import build_core_prompt
 from typing import Callable, Optional
 import backend.config as config
@@ -34,7 +34,7 @@ def extract_info_streaming(core_text, reference, ev_definition, filename, progre
     logger.info(f"核心内容抽取准备: {filename}")
 
     try:
-        response = chatStream(prompt)
+        response = chat(prompt)
         response.raise_for_status()
 
         logger.info(f"核心内容抽取： {filename}")

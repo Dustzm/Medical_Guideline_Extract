@@ -5,7 +5,7 @@ import pandas as pd
 import requests
 import os
 import json
-from backend.llm import chatStream
+from backend.llm import chat
 from backend.prompt import build_core_segmentation_prompt
 from backend.utils import parse_json_result, remove_think_tag
 
@@ -25,7 +25,7 @@ def extract_info_streaming(text, filename,progress_callback: Optional[Callable[[
     logger.info(f"核心内容分析准备，开始调用大模型: {filename}")
     try:
         # 发送流式请求
-        response = chatStream(prompt)
+        response = chat(prompt)
         response.raise_for_status()
         logger.info(f"核心内容分析开始，流式处理 {filename}")
         logger.info("-" * 50)

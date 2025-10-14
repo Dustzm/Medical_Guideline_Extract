@@ -6,7 +6,7 @@ import json
 import PyPDF2
 import pandas as pd
 import requests
-from backend.llm import chatStream
+from backend.llm import chat
 from backend.prompt import build_others_prompt
 from typing import Callable, Optional
 import backend.config as config
@@ -19,7 +19,7 @@ API_KEY = config.settings.api_key
 API_URL = config.settings.api_url
 MODEL_ID = config.settings.model_id
 
-def extract_info_streaming(text, filename, progress_callback: Optional[Callable[[int, str], None]] = None):
+def extract_info_streaming(text: str, filename: str|None = None, progress_callback: Optional[Callable[[int, str], None]] = None):
     """
     边缘信息抽取
 
@@ -35,7 +35,7 @@ def extract_info_streaming(text, filename, progress_callback: Optional[Callable[
     logger.info(f"边缘信息抽取准备: {filename}")
 
     try:
-        response = chatStream(prompt)
+        response = chat(prompt)
         response.raise_for_status()
 
         logger.info(f"开始流式处理 {filename} 的提取结果")

@@ -1,5 +1,5 @@
-from .llm_service import chatStream
+from .llm_service import chat
 
 __all__ = [
-    'chatStream'
+    'chat'
 ]

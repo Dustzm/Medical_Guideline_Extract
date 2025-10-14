@@ -7,7 +7,6 @@ import time
 
 import PyPDF2
 import pandas as pd
-import requests
 from typing import Callable, Optional
 import config
 import unstruct

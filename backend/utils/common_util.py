@@ -1,4 +1,22 @@
+import json
 import re
+import json
+
+from requests import Response
+
+
+def parse_llm_response(response: Response):
+    """
+    解析大模型返回结果
+    Args:
+        response: 大模型返回结果Response
+
+    Returns: 大模型返回答案
+
+    """
+    llm_answer = json.loads(response.text)
+    str = llm_answer['choices'][0]['message'].get('content','')
+    return remove_think_tag(str)
 
 def remove_think_tag(text):
     """
