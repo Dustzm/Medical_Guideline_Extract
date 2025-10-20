@@ -34,9 +34,19 @@ def extract_text_from_pdf(pdf_path):
         print(f"读取PDF出错 {pdf_path}: {e}")
         return ""
 
-# 解析纯文本结果为六列数据结构
+# 判断文本是否包含中文字符
+def is_chinese_text(text):
+    """判断文本是否包含中文字符"""
+    if not text:
+        return False
+    for char in text:
+        if '\u4e00' <= char <= '\u9fff':
+            return True
+    return False
+
+# 解析纯文本结果为七列数据结构
 def parse_text_result(text):
-    columns = ["entity", "property", "value", "entityTag", "valueTag", "level"]
+    columns = ["entity", "property", "value", "entityTag", "valueTag", "level", "valueType"]
     data = []
 
     lines = [line.strip() for line in text.split('\n') if line.strip()]
@@ -47,6 +57,15 @@ def parse_text_result(text):
             row = parts[:6]
         else:
             row = parts + [''] * (6 - len(parts))
+
+        # 根据valueTag判断valueType
+        value_tag = row[4] if len(row) > 4 else ""
+        if is_chinese_text(value_tag):
+            value_type = "object"
+        else:
+            value_type = "data"
+        row.append(value_type)
+
         data.append(row)
 
     return pd.DataFrame(data, columns=columns)
@@ -67,7 +86,7 @@ def extract(text, filename, progress_callback: Optional[Callable[[int, str], Non
     # 无文本处理
     if not text:
         logger.warning(f"{filename} 没有提取到文本内容")
-        columns = ["entity", "property", "value", "entityTag", "valueTag", "level"]
+        columns = ["entity", "property", "value", "entityTag", "valueTag", "level", "valueType"]
         if progress_callback:
             progress_callback(100, f"没有提取到文本，抽取结束")
         return pd.DataFrame(columns=columns)

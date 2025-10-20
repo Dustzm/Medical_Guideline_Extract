@@ -1,8 +1,10 @@
 fastapi==0.104.1
 uvicorn==0.24.0
-pydantic==2.5.0
+pydantic==2.12.3
 PyPDF2==3.0.1
 pandas==1.5.3
 requests==2.31.0
 python-multipart==0.0.6
 openpyxl==3.1.2
+dotenv==0.9.9
+mcp==1.18.0

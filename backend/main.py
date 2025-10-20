@@ -71,7 +71,7 @@ async def api_key_check(request: Request, call_next):
     api令牌校验切片
     """
     # 白名单，路径为/public则免校验
-    if request.url.path.startswith("/medicalGuildLine/knowledgeExtract/public"):
+    if request.url.path.startswith("/medicalGuideLine/knowledgeExtract/public"):
         return await call_next(request)
     # 从请求头获取API密钥
     api_key = request.headers.get("X-API-Key")
