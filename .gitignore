@@ -145,3 +145,7 @@ Thumbs.db
 tmp/
 temp/
 nohup.out
+
+CLAUDE.md
+GEMINI.md
+IFLOW.md
