@@ -5,12 +5,17 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![DOI](https://img.shields.io/badge/DOI-10.xxxx-orange.svg)](https://doi.org/10.xxxx)
 
+<div align="center">
+
+[**English**](README.md) | **简体中文**
+
+</div>
+
 > 🚀 **基于大语言模型的智能医学指南知识抽取系统**
 >
 > 专门针对医学指南文档的智能信息提取，支持PDF文档处理、结构化数据输出和实时任务管理。利用先进的AI技术，将复杂的医学文献转化为可机读、可分析的结构化知识，助力医学知识图谱构建。
 
 ---
-
 ## 📋 目录
 
 - [✨ 核心特性](#-核心特性)

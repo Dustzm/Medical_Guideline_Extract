@@ -5,6 +5,12 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![DOI](https://img.shields.io/badge/DOI-10.xxxx-orange.svg)](https://doi.org/10.xxxx)
 
+<div align="center">
+
+**English** | [**简体中文**](README_ZH.md)
+
+</div>
+
 > 🚀 **AI-Powered Medical Guidelines Knowledge Extraction System**
 >
 > Specialized intelligent information extraction for medical guideline documents, supporting PDF document processing, structured data output, and real-time task management. Utilizing advanced AI technology to transform complex medical literature into machine-readable and analyzable structured knowledge, facilitating medical knowledge graph construction.
