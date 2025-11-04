@@ -27,7 +27,7 @@ def get_content_type(content: str) -> bool:
 @mcp.tool()
 def get_knowledge_extract(content: str, content_type: bool) -> str:
     """
-    实现文本的知识抽，抽取为结构化知识，分为六列，entity、property、value、entityTag、valueTag、level
+    实现文本的知识抽取，抽取为结构化知识，分为六列，entity、property、value、entityTag、valueTag、level
     本方法耗时较长，应使用户知晓，抽取消耗时长在10分钟左右
     Args:
         content: 医疗指南文本
